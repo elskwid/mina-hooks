@@ -3,3 +3,4 @@
 * Initial release:
   * Added README
   * Added Mina::Hooks module
+  * Added tests

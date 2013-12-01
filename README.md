@@ -7,7 +7,8 @@
 
 ## Description
 
-Provides local task hooks that run before and after the mina commands.
+Mina plugin to provide local task hooks that run before and after the mina
+commands.
 
 Mina uses a queueing system to create a deploy script that executes on the
 remote system but that leaves no way to know when the deploy has started or

@@ -1,0 +1,1 @@
+require 'mina/hooks/version'

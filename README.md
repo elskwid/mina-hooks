@@ -17,6 +17,7 @@ ended.
 `mina-hooks` gets around this limitation by defining a new `mina_cleanup!`
 method that does the following:
 
+* detect if mina is being run with the `deploy` argument
 * invoke each of the `before_mina_tasks`
 * delegate to the pre-existing `mina_cleanup!`
 * invoke each of the `after_mina_tasks`

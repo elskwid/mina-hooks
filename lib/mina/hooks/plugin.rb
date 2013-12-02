@@ -23,17 +23,21 @@ module Mina
       end
 
       def invoke_before_mina_tasks
-        print_local_status "Invoke before mina tasks"
-        print_task_list self.before_mina_tasks if verbose_mode?
+        return unless deploying?
 
-        self.before_mina_tasks.each { |task_name| invoke task_name }
+        print_local_status "Invoke before mina tasks"
+        print_task_list self.before_mina_tasks if self.verbose_mode?
+
+        self.before_mina_tasks.each { |task_name| self.invoke task_name }
       end
 
       def invoke_after_mina_tasks
-        print_local_status "Invoke after mina tasks"
-        print_task_list self.after_mina_tasks if verbose_mode?
+        return unless deploying?
 
-        self.after_mina_tasks.each { |task_name| invoke task_name }
+        print_local_status "Invoke after mina tasks"
+        print_task_list self.after_mina_tasks if self.verbose_mode?
+
+        self.after_mina_tasks.each { |task_name| self.invoke task_name }
       end
 
       def mina_cleanup!
@@ -53,6 +57,9 @@ module Mina
         puts "#{color('<-----', 32)} #{msg}"
       end
 
+      def deploying?
+        @deploying ||= ARGV.include? "deploy"
+      end
     end
   end
 end

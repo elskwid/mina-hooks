@@ -42,90 +42,106 @@ describe Mina::Hooks::Plugin do
 
     describe "default task lists" do
       it "before tasks" do
-        assert_equal klass.before_mina_tasks, []
+        assert_equal [], klass.before_mina_tasks
       end
 
       it "after tasks" do
-        assert_equal klass.after_mina_tasks, []
+        assert_equal [], klass.after_mina_tasks
       end
     end # default task lists
   end # class scope
 
   describe "rake/mina scope" do
+    before do
+      mina_app.reset!
+    end
+
     describe "before mina" do
       let(:task_list) { ["some:task", "some:other:task"] }
 
-      it "defines before_mina" do
-        task do
-          assert_respond_to self, :before_mina
-        end
-      end
-
       it "adds tasks to the task list" do
-        task do
-          before_mina *task_list
-          assert_equal before_mina_tasks, task_list
+        task do |t|
+          t.before_mina *task_list
         end
+        assert_equal task_list, mina_app.before_mina_tasks
       end
 
       it "adds more tasks to the list" do
-        task do
-          before_mina *task_list
-          before_mina "another:task"
-          assert_equal before_mina_tasks, (task_list + ["another:task"])
+        task do |t|
+          t.before_mina *task_list
+          t.before_mina "another:task"
         end
+        assert_equal (task_list + ["another:task"]), mina_app.before_mina_tasks
       end
     end # before mina
 
     describe "after mina" do
       let(:task_list) { ["after:task"] }
 
-      it "defines after_mina" do
-        task do
-          assert_respond_to self, :after_mina
-        end
-      end
-
       it "adds tasks to the task list" do
-        task do
-          after_mina *task_list
-          assert_equal after_mina_tasks, task_list
+        task do |t|
+          t.after_mina *task_list
         end
+        assert_equal task_list, mina_app.after_mina_tasks
       end
     end # after mina
 
     describe "invoke tasks" do
+      let(:mina) { mina_app }
       let(:task_list) { ["first:task", "second:task", "third:task"]}
 
-      it "invokes before mina in order" do
-        task do
-          before_mina *task_list
-          invoke_before_mina_tasks
-          assert_equal invoked_tasks, task_list
+      describe "when deploying" do
+        it "invokes before mina in order" do
+          mina.test_task do |t|
+            t.before_mina *task_list
+            t.invoke_before_mina_tasks
+          end
+          assert_equal task_list, mina.invoked_tasks
         end
       end
 
       it "invokes after mina in order" do
-        task do
-          after_mina *task_list
-          invoke_after_mina_tasks
-          assert_equal invoked_tasks, task_list
+        mina.test_task do |t|
+          t.after_mina *task_list
+          t.invoke_after_mina_tasks
+        end
+        assert_equal task_list, mina.invoked_tasks
+      end
+
+      describe "when not deploying" do
+        it "invokes before mina in order" do
+          mina.test_task do |t|
+            t.not_deploying!
+            t.before_mina *task_list
+            t.invoke_before_mina_tasks
+          end
+          refute_equal task_list, mina.invoked_tasks
+        end
+
+        it "invokes after mina in order" do
+          mina.test_task do |t|
+            t.not_deploying!
+            t.after_mina *task_list
+            t.invoke_after_mina_tasks
+          end
+          refute_equal task_list, mina.invoked_tasks
         end
       end
     end # invoke tasks
 
     describe "mina cleanup" do
+      let(:mina) { mina_app }
       let(:before_task_list) { ["before:task:one", "before:task:two"] }
       let(:after_task_list)  { ["after:task:one", "after:task:two"]   }
 
       it "invokes all tasks" do
-        task do
-          before_mina *before_task_list
-          after_mina *after_task_list
-          mina_cleanup!
-          assert cleanup_called
-          assert_equal invoked_tasks, (before_task_list + after_task_list)
+        mina.test_task do |t|
+          t.before_mina *before_task_list
+          t.after_mina *after_task_list
+          t.mina_cleanup!
         end
+        assert mina.cleanup_called, "cleanup_called must be true."
+        assert_equal (before_task_list + after_task_list), mina.invoked_tasks
       end
     end # mina cleanup
 

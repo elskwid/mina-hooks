@@ -1,4 +1,5 @@
 require "rubygems"
+require "securerandom"
 
 begin
   require "bundler"
@@ -20,7 +21,7 @@ require "mina"
 
 # create a regular class scope to test methods
 class MinaClass
-  require "mina/hooks"
+  require "mina/hooks/plugin"
   extend Mina::Hooks::Plugin
 end
 
@@ -29,7 +30,9 @@ def mina_app
   Rake.application.instance_eval do
     init "mina"
     require "mina/rake"
-    load "test/deploy.rb"
+
+    @rakefiles = ["test/deploy.rb"]
+    load_rakefile
 
     # list of tasks that were "invoked"
     @invoked_tasks = []
@@ -54,7 +57,38 @@ def mina_app
 
     # fake mina_cleanup! command for testing
     def mina_cleanup!
-      cleanup_called = true
+      super
+      @cleanup_called = true
+    end
+
+    @deploying = true
+
+    # set not deploying!
+    def not_deploying!
+      @deploying = false
+    end
+
+    def test_task(task_name = random_task_name, &block)
+      task = define_task(Rake::Task, task_name) do |t|
+        extend Mina::Helpers
+        extend Mina::Hooks::Plugin # simulates a rakefile env
+        block.call(self)
+      end
+      task.invoke
+      task
+    end
+
+    # to avoid rake task enhancing and correct invocation
+    def random_task_name
+      "test_task_#{SecureRandom.hex}"
+    end
+
+    def reset!
+      @before_mina_tasks = []
+      @after_mina_tasks = []
+      @invoked_tasks = []
+      @cleanup_called = false
+      @deploying = true
     end
 
     return self
@@ -62,10 +96,8 @@ def mina_app
 end
 
 # create a task in the scope of the mina app
-def task(name = "test_task", &block)
-  mina_app.instance_eval do
-    define_task Rake::Task, name, &block
-  end
+def task(&block)
+  mina_app.test_task(&block)
 end
 
 require "minitest/autorun"
